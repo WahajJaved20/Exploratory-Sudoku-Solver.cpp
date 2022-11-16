@@ -205,6 +205,7 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
         findMinimumSizePossibility(indexes,&r,&c);
         stack<int**> grids = generateNewBoards(sudoku,possibility,indexes,r,c);
         int stackSize = grids.size();
+        cout<<"Stack Size: "<<stackSize<<endl;
         #pragma omp parallel for num_threads(indexes[r][c])
         for(int i=0;i<stackSize;i++){
             cout<<"Creating Board["<<r<<"]["<<c<<"]"<<endl;
