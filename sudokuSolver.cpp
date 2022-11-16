@@ -60,7 +60,6 @@ int solved(int **sudoku, int *rows, int *columns){
     }
     return 1;
 }
-
 int checkSudoku(int **sudoku, int num, int row, int col){
     int result = 1;
     #pragma omp parallel num_threads(THREAD_COUNT)
@@ -86,6 +85,25 @@ int checkSudoku(int **sudoku, int num, int row, int col){
     }
     return result;
 }
+int verifySudoku(int** sudoku){
+    int result = 1;
+    for(int i=0;i<SIZE;i++){
+        for(int j=0;j<SIZE;j++){
+            if(sudoku[i][j] == 0){
+                continue;
+            }
+            int num = sudoku[i][j];
+            sudoku[i][j]=0;
+            if(!checkSudoku(sudoku,num,i,j)){
+                result = 0;
+                return result;
+            }
+            sudoku[i][j] = num;
+        }
+    }
+    return result;
+}
+
 void resetIndexArray(int** indexes){
     for(int i=0;i<SIZE;i++){
         #pragma omp parallel for num_threads(THREAD_COUNT)
@@ -187,10 +205,9 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
         findMinimumSizePossibility(indexes,&r,&c);
         stack<int**> grids = generateNewBoards(sudoku,possibility,indexes,r,c);
         int stackSize = grids.size();
-        cout<<stackSize<<"Elements"<<endl;
-        sleep(2);
         #pragma omp parallel for num_threads(indexes[r][c])
         for(int i=0;i<stackSize;i++){
+            cout<<"Creating Board["<<r<<"]["<<c<<"]"<<endl;
             int **mySudoku;
             #pragma omp critical
             {
@@ -199,9 +216,28 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
             }
             int** myIndex = generateIndexInit(indexes);
             int*** myPossibility = generatePossibilityInit(possibility);
-            solveSudoku(myPossibility,mySudoku,myIndex);
+
+            if(verifySudoku(mySudoku)){
+                solveSudoku(myPossibility,mySudoku,myIndex);
+            }else{
+                for (int i = 0; i < SIZE; i++){
+                    delete[] myIndex[i];
+                    delete[] mySudoku[i];
+                    for (int j = 0; j < SIZE; j++){
+                        delete[] myPossibility[i][j];
+                    }
+                    delete[] myPossibility[i];
+                }
+                delete myPossibility;
+                delete myIndex;
+                delete mySudoku;
+                myPossibility = NULL;
+                myIndex = NULL;
+                mySudoku = NULL;
+            }
+            
         }
-        cout<<"Deleting board"<<r<<"  "<<c<<endl;
+        cout<<"Eliminating Board["<<r<<"]["<<c<<"]"<<endl;
     }
     return 0;
 
@@ -243,5 +279,10 @@ int main(int argc, char *argv[]) {
             cin >> sudoku[i][j];
         }
     }
+    double start = omp_get_wtime();
     solveSudoku(possibilityMatrix,sudoku,indexValue);
+    double end = omp_get_wtime();
+    printSudoku(solutionGrid);
+
+    cout<<"Total parallel time taken to solve a "<<SIZE<<"x"<<SIZE<<" Sudoku Board : "<<end-start<<endl;
 }
