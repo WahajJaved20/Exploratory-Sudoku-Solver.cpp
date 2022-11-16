@@ -122,28 +122,26 @@ void findMinimumSizePossibility(int** indexes,int *row,int* col){
     int minimum=SIZE+1;
     for(int i=0;i<SIZE;i++){
         for(int j=0;j<SIZE;j++){
-            cout<<"trying index "<<i<<"  "<<j<<endl;
             if(indexes[i][j] == 0){
                 continue;
             }
             if(indexes[i][j]<minimum){
                 minimum = indexes[i][j];
-                // *(row) = i;
-                // *(col) = j;
+                *(row) = i;
+                *(col) = j;
             }
         }
     }
-    cout<<"done with loop";
-
 }
 
 stack<int**> generateNewBoards(int **sudoku,int ***possibility,int **indexes,int row,int col){
     stack<int**> grids;
+    
     for(int i=0;i<indexes[row][col];i++){
-        int **temp = new int*[SIZE];
+        int** temp = new int*[SIZE];
         for(int j=0;j<SIZE;j++){
-            temp[i] = new int[SIZE];
-            memcpy(temp[i], sudoku[i], SIZE * sizeof(int));
+            temp[j] = new int[SIZE];
+            memcpy(temp[j], sudoku[j], SIZE * sizeof(int));
         }
         temp[row][col] = possibility[row][col][i];
         grids.push(temp);
@@ -187,10 +185,10 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
         }
         int r,c;
         findMinimumSizePossibility(indexes,&r,&c);
-        cout<<"Found minimum";
-        cout<<r<<" "<<c<<" "<<indexes[r][c]<<" damn"; 
         stack<int**> grids = generateNewBoards(sudoku,possibility,indexes,r,c);
         int stackSize = grids.size();
+        cout<<stackSize<<"Elements"<<endl;
+        sleep(2);
         #pragma omp parallel for num_threads(indexes[r][c])
         for(int i=0;i<stackSize;i++){
             int **mySudoku;
@@ -203,6 +201,7 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
             int*** myPossibility = generatePossibilityInit(possibility);
             solveSudoku(myPossibility,mySudoku,myIndex);
         }
+        cout<<"Deleting board"<<r<<"  "<<c<<endl;
     }
     return 0;
 
