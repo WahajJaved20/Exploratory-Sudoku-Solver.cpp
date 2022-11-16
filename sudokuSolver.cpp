@@ -62,7 +62,7 @@ int solved(int **sudoku, int *rows, int *columns){
 }
 int checkSudoku(int **sudoku, int num, int row, int col){
     int result = 1;
-    #pragma omp parallel num_threads(THREAD_COUNT)
+    #pragma omp parallel num_threads(SIZE)
     for (int i = 0; i < SIZE; i++){
         if (num == sudoku[i][col]){
             result = 0;
@@ -71,7 +71,7 @@ int checkSudoku(int **sudoku, int num, int row, int col){
     if (!result){
         return 0;
     }
-    #pragma omp parallel num_threads(THREAD_COUNT)
+    #pragma omp parallel num_threads(SIZE)
     for (int j = 0; j < SIZE; j++){
         if (num == sudoku[row][j]){
             result = 0;
@@ -106,7 +106,7 @@ int verifySudoku(int** sudoku){
 
 void resetIndexArray(int** indexes){
     for(int i=0;i<SIZE;i++){
-        #pragma omp parallel for num_threads(THREAD_COUNT)
+        #pragma omp parallel for num_threads(SIZE)
         for(int j=0;j<SIZE;j++){
             indexes[i][j]=0;
         }
@@ -119,7 +119,7 @@ void performElimination(int** sudoku,int***possibility,int**indexes){
             if(sudoku[i][j] != 0){
                 continue;
             }
-            #pragma omp parallel for num_threads(THREAD_COUNT)
+            #pragma omp parallel for num_threads(SIZE)
             for (int k = 1; k <= SIZE; k++){
                 if (checkSudoku(sudoku, k, i, j)){
                     possibility[i][j][indexes[i][j]] = k;
@@ -150,13 +150,17 @@ void findMinimumSizePossibility(int** indexes,int *row,int* col){
             }
         }
     }
+    if(*(row) >= SIZE || *(col) >=SIZE){
+        *(row) = -1;
+        *(col) = -1;
+    }
 }
 
 stack<int**> generateNewBoards(int **sudoku,int ***possibility,int **indexes,int row,int col){
     stack<int**> grids;
-    
     for(int i=0;i<indexes[row][col];i++){
         int** temp = new int*[SIZE];
+        #pragma omp parallel for num_threads(SIZE)
         for(int j=0;j<SIZE;j++){
             temp[j] = new int[SIZE];
             memcpy(temp[j], sudoku[j], SIZE * sizeof(int));
@@ -171,6 +175,7 @@ int** generateIndexInit(int ** indexes){
     int ** myIndex = new int*[SIZE];
     for(int i=0;i<SIZE;i++){
         myIndex[i] = new int[SIZE];
+        #pragma omp parallel for num_threads(SIZE)
         for(int j=0;j<SIZE;j++){
             myIndex[i][j] = 0;
         }
@@ -180,10 +185,12 @@ int** generateIndexInit(int ** indexes){
 
 int*** generatePossibilityInit(int*** possibility){
     int ***myPossibility = new int**[SIZE];
+    #pragma omp parallel for num_threads(SIZE)
     for(int i=0;i<SIZE;i++){
         myPossibility[i] = new int*[SIZE];
     }
     for(int i=0;i<SIZE;i++){
+        #pragma omp parallel for num_threads(SIZE)
         for(int j=0;j<SIZE;j++){
             myPossibility[i][j] = new int[SIZE];
         }
@@ -203,6 +210,9 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
         }
         int r,c;
         findMinimumSizePossibility(indexes,&r,&c);
+        if(r==-1 || c==-1){
+            return 0;
+        }
         stack<int**> grids = generateNewBoards(sudoku,possibility,indexes,r,c);
         int stackSize = grids.size();
         cout<<"Stack Size: "<<stackSize<<endl;
@@ -220,23 +230,7 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
 
             if(verifySudoku(mySudoku)){
                 solveSudoku(myPossibility,mySudoku,myIndex);
-            }else{
-                for (int i = 0; i < SIZE; i++){
-                    delete[] myIndex[i];
-                    delete[] mySudoku[i];
-                    for (int j = 0; j < SIZE; j++){
-                        delete[] myPossibility[i][j];
-                    }
-                    delete[] myPossibility[i];
-                }
-                delete myPossibility;
-                delete myIndex;
-                delete mySudoku;
-                myPossibility = NULL;
-                myIndex = NULL;
-                mySudoku = NULL;
             }
-            
         }
         cout<<"Eliminating Board["<<r<<"]["<<c<<"]"<<endl;
     }
@@ -250,14 +244,15 @@ int main(int argc, char *argv[]) {
         cout << "Please run the code as ./main <board_size> <thread_count>" << endl;
         return 0;
     }
-
+    
     SIZE = stoi(argv[1]);
     THREAD_COUNT = stoi(argv[2]);
+    omp_set_num_threads(THREAD_COUNT);
     int ***possibilityMatrix = new int **[SIZE];
     int **indexValue = new int *[SIZE];
     int **sudoku = new int *[SIZE];
 
-    #pragma omp parallel for num_threads(THREAD_COUNT)
+    #pragma omp parallel for num_threads(SIZE)
     for (int i = 0; i < SIZE; i++) {
         sudoku[i] = new int[SIZE];
         possibilityMatrix[i] = new int *[SIZE];
@@ -268,7 +263,7 @@ int main(int argc, char *argv[]) {
         for (int j = 0; j < SIZE; j++) {
             possibilityMatrix[i][j] = new int[SIZE];
             indexValue[i][j] = 0;
-            #pragma omp parallel for num_threads(THREAD_COUNT)
+            #pragma omp parallel for num_threads(SIZE)
             for (int k = 0; k < SIZE; k++) {
                 possibilityMatrix[i][j][k] = 0;
             }
