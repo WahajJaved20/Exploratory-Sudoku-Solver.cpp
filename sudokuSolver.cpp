@@ -119,7 +119,6 @@ void performElimination(int** sudoku,int***possibility,int**indexes){
             if(sudoku[i][j] != 0){
                 continue;
             }
-            #pragma omp parallel for num_threads(SIZE)
             for (int k = 1; k <= SIZE; k++){
                 if (checkSudoku(sudoku, k, i, j)){
                     possibility[i][j][indexes[i][j]] = k;
@@ -230,6 +229,18 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
 
             if(verifySudoku(mySudoku)){
                 solveSudoku(myPossibility,mySudoku,myIndex);
+            }else{
+                for(int i=0;i<SIZE;i++){
+                    for(int j=0;j<SIZE;j++){
+                        delete[] myPossibility[i][j];
+                    }
+                    delete[] myIndex[i];
+                    delete[] myPossibility[i];
+                    delete[] mySudoku[i];
+                }
+                delete[] mySudoku;
+                delete[] myIndex;
+                delete[] myPossibility;
             }
         }
         cout<<"Eliminating Board["<<r<<"]["<<c<<"]"<<endl;
@@ -275,6 +286,7 @@ int main(int argc, char *argv[]) {
             cin >> sudoku[i][j];
         }
     }
+    cout<<"eher4";
     double start = omp_get_wtime();
     solveSudoku(possibilityMatrix,sudoku,indexValue);
     double end = omp_get_wtime();
