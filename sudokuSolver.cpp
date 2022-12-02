@@ -9,6 +9,7 @@ using namespace std;
 int SIZE;
 int THREAD_COUNT;
 int** solutionGrid;
+bool solvedBoard=false;
 void printSudoku(int **sudoku){
     printf("The Sudoku contains:\n");
     for (int i = 0; i < SIZE; i++){
@@ -197,14 +198,23 @@ int*** generatePossibilityInit(int*** possibility){
     return myPossibility;
 }
 int solveSudoku(int*** possibility,int** sudoku,int** indexes){
+    
     int rows,columns;
+    if(solvedBoard){
+        return 1;
+    }
+    if(!verifySudoku(sudoku)){
+        return 0;
+    }
     if(solved(sudoku,&rows,&columns)){
         solutionGrid = sudoku;
+        solvedBoard = true;
         return 1;
     }else{
         performElimination(sudoku,possibility,indexes);
         if(solved(sudoku,&rows,&columns)){
             solutionGrid = sudoku;
+            solvedBoard=true;
             return 1;
         }
         int r,c;
@@ -226,11 +236,13 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
             }
             int** myIndex = generateIndexInit(indexes);
             int*** myPossibility = generatePossibilityInit(possibility);
-
+            int x;
             if(verifySudoku(mySudoku)){
-                solveSudoku(myPossibility,mySudoku,myIndex);
-            }else{
-                for(int i=0;i<SIZE;i++){
+                x = solveSudoku(myPossibility,mySudoku,myIndex);
+            }
+            int a,b;
+                if(!solved(mySudoku,&a,&b)){
+                    for(int i=0;i<SIZE;i++){
                     for(int j=0;j<SIZE;j++){
                         delete[] myPossibility[i][j];
                     }
@@ -241,7 +253,7 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
                 delete[] mySudoku;
                 delete[] myIndex;
                 delete[] myPossibility;
-            }
+                }
         }
         cout<<"Eliminating Board["<<r<<"]["<<c<<"]"<<endl;
     }
@@ -286,7 +298,6 @@ int main(int argc, char *argv[]) {
             cin >> sudoku[i][j];
         }
     }
-    cout<<"eher4";
     double start = omp_get_wtime();
     solveSudoku(possibilityMatrix,sudoku,indexValue);
     double end = omp_get_wtime();
