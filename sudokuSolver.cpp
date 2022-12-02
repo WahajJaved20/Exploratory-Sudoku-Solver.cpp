@@ -5,11 +5,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <fstream>
 using namespace std;
+int BOARD_COUNT=0;
 int SIZE;
 int THREAD_COUNT;
 int** solutionGrid;
 bool solvedBoard=false;
+int RECURSION_COUNTER=0;
+ofstream logFile("sudokuLogs.txt",ios::app);
 void printSudoku(int **sudoku){
     printf("The Sudoku contains:\n");
     for (int i = 0; i < SIZE; i++){
@@ -225,14 +229,21 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
         stack<int**> grids = generateNewBoards(sudoku,possibility,indexes,r,c);
         int stackSize = grids.size();
         cout<<"Stack Size: "<<stackSize<<endl;
-        #pragma omp parallel for num_threads(indexes[r][c])
+		bool filePlaced = false;
+        #pragma omp parallel for num_threads(SIZE)
         for(int i=0;i<stackSize;i++){
             cout<<"Creating Board["<<r<<"]["<<c<<"]"<<endl;
             int **mySudoku;
+			#pragma omp critical
+			if(!filePlaced){
+				RECURSION_COUNTER++;
+				filePlaced=true;
+			}
             #pragma omp critical
             {
                 mySudoku = grids.top();
                 grids.pop();
+				BOARD_COUNT++;
             }
             int** myIndex = generateIndexInit(indexes);
             int*** myPossibility = generatePossibilityInit(possibility);
@@ -271,6 +282,11 @@ int main(int argc, char *argv[]) {
     SIZE = stoi(argv[1]);
     THREAD_COUNT = stoi(argv[2]);
     omp_set_num_threads(THREAD_COUNT);
+	logFile << "============================================================================================"<<endl;
+	logFile << "EXPLORATORY DECOMPOSITION OF A "<<SIZE<<"x"<<SIZE<<" SUDOKU BOARD"<<endl;
+	logFile << "============================================================================================"<<endl;
+	logFile << "Requested Thread Count: "<<THREAD_COUNT<<endl;
+	logFile << "INPUT BOARD : "<<endl;
     int ***possibilityMatrix = new int **[SIZE];
     int **indexValue = new int *[SIZE];
     int **sudoku = new int *[SIZE];
@@ -296,12 +312,25 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
             cin >> sudoku[i][j];
+			logFile << sudoku[i][j]<<"  ";
         }
+		logFile<<endl;
     }
     double start = omp_get_wtime();
     solveSudoku(possibilityMatrix,sudoku,indexValue);
     double end = omp_get_wtime();
+	logFile << "Total Boards Created : "<<BOARD_COUNT <<endl;
+	logFile << "Total Recursive Calls : "<<RECURSION_COUNTER <<endl;
     printSudoku(solutionGrid);
-
+	logFile << "Output Board: "<<endl;
+	for(int i=0;i<SIZE;i++){
+		for(int j=0;j<SIZE;j++){
+			logFile << solutionGrid[i][j] <<"  ";
+		}
+		logFile <<endl;
+	}
     cout<<"Total parallel time taken to solve a "<<SIZE<<"x"<<SIZE<<" Sudoku Board : "<<end-start<<endl;
+	logFile<<"Total parallel time taken to solve a "<<SIZE<<"x"<<SIZE<<" Sudoku Board : "<<end-start<<endl;
+	logFile << "============================================================================================"<<endl;
+	logFile.close();
 }
