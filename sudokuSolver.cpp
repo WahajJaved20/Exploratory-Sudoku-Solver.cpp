@@ -53,12 +53,10 @@ int checkSquare(int **sudoku, int num, int row, int col){
     return result;
 }
 
-int solved(int **sudoku, int *rows, int *columns){
+int solved(int **sudoku){
     for (int i = 0; i < SIZE; i++){
         for (int j = 0; j < SIZE; j++){
             if (sudoku[i][j] == 0){
-                *(rows) = i;
-                *(columns) = j;
                 return 0;
             }
         }
@@ -203,20 +201,19 @@ int*** generatePossibilityInit(int*** possibility){
 }
 int solveSudoku(int*** possibility,int** sudoku,int** indexes){
     
-    int rows,columns;
     if(solvedBoard){
         return 1;
     }
     if(!verifySudoku(sudoku)){
         return 0;
     }
-    if(solved(sudoku,&rows,&columns)){
+    if(solved(sudoku)){
         solutionGrid = sudoku;
         solvedBoard = true;
         return 1;
     }else{
         performElimination(sudoku,possibility,indexes);
-        if(solved(sudoku,&rows,&columns)){
+        if(solved(sudoku)){
             solutionGrid = sudoku;
             solvedBoard=true;
             return 1;
@@ -251,8 +248,7 @@ int solveSudoku(int*** possibility,int** sudoku,int** indexes){
             if(verifySudoku(mySudoku)){
                 x = solveSudoku(myPossibility,mySudoku,myIndex);
             }
-            int a,b;
-                if(!solved(mySudoku,&a,&b)){
+                if(!solved(mySudoku)){
                     for(int i=0;i<SIZE;i++){
                     for(int j=0;j<SIZE;j++){
                         delete[] myPossibility[i][j];
